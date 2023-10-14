@@ -1,23 +1,45 @@
+#kafka cluster https://gist.github.com/everpeace/7a317860cab6c7fb39d5b0c13ec2543e
 version: '1.0'
-name: kafka-app-group
+name: kafka-cluster
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.5.1
     container_name: zookeeper-c
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
-  kafka:
-    image: confluentinc/cp-kafka:latest
-    container_name: broker-c
+  broker1:
+    image: confluentinc/cp-kafka:7.5.1
+    container_name: broker1-c
     depends_on:
       - zookeeper
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper-c:2181'
+      BOOTSTRAP_SERVERS: broker1-c:9091,broker2-c:9092,broker3-c:9093
+      KAFKA_LISTENERS: INTERNAL://:29091,EXTERNAL://:9091
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://broker1-c:29091,EXTERNAL://localhost:9091
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - '9091:9091'
+
+  broker2:
+    image: confluentinc/cp-kafka:7.5.1
+    container_name: broker2-c
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper-c:2181'
+      BOOTSTRAP_SERVERS: broker1-c:9091,broker2-c:9092,broker3-c:9093
       KAFKA_LISTENERS: INTERNAL://:29092,EXTERNAL://:9092
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://broker-c:29092,EXTERNAL://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://broker2-c:29092,EXTERNAL://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -27,14 +49,35 @@ services:
     ports:
       - '9092:9092'
 
+  broker3:
+    image: confluentinc/cp-kafka:7.5.1
+    container_name: broker3-c
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper-c:2181'
+      BOOTSTRAP_SERVERS: broker1-c:9091,broker2-c:9092,broker3-c:9093
+      KAFKA_LISTENERS: INTERNAL://:29093,EXTERNAL://:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://broker3-c:29093,EXTERNAL://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - '9093:9093'
+
   kafdrop:
-    image: obsidiandynamics/kafdrop:latest
+    image: obsidiandynamics/kafdrop:4.0.0
     container_name: client-c
     depends_on:
-      - kafka
+      - broker1
+      - broker2
     restart: no
     environment:
-      KAFKA_BROKERCONNECT: 'broker-c:29092'
+      KAFKA_BROKERCONNECT: 'broker1-c:29091,broker2-c:29092,broker3-c:29093'
       JVM_OPTS: '-Xms32M -Xmx48M'
     ports:
       - '9000:9000'
